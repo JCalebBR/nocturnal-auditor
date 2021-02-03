@@ -2,12 +2,44 @@ const fs = require('fs');
 
 const Discord = require('discord.js');
 const { token, prefix } = require('./config.json');
+// PATCH TO ADD GUILDMEMBER.PENDING
+const { Structures } = require('discord.js');
+
+Structures.extend('GuildMember', GuildMember => {
+    class GuildMemberWithPending extends GuildMember {
+        pending = false;
+
+        constructor(client, data, guild) {
+            super(client, data, guild);
+            this.pending = data.pending ?? false;
+        }
+
+        _patch(data) {
+            super._patch(data);
+            this.pending = data.pending ?? false;
+        }
+    }
+    return GuildMemberWithPending;
+});
+
 const client = new Discord.Client();
 const path = require('path');
-const dirPath = path.resolve(__dirname, './commands');
+const eventsDirPath = path.resolve(__dirname, './events');
+const commandsDirPath = path.resolve(__dirname, './commands');
+
+client.gEvents = new Discord.Collection();
+const eventFiles = fs.readdirSync(eventsDirPath).filter(file => file.endsWith('.js'));
+
+for (const file of eventFiles) {
+    const event = require(`./events/${file}`);
+
+    // set a new item in the Collection
+    // with the key as the command name and the value as the exported module
+    client.gEvents.set(event.name, event);
+}
 
 client.commands = new Discord.Collection();
-const commandFiles = fs.readdirSync(dirPath).filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync(commandsDirPath).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
@@ -17,14 +49,14 @@ for (const file of commandFiles) {
     client.commands.set(command.name, command);
 }
 
+
 const cooldowns = new Discord.Collection();
 
 // Ready
 client.once('ready', () => {
     console.log('Ready!');
-    // Activity
-    client.user.setActivity('the memeland', { type: 'WATCHING' })
-        .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
+    // Presence
+    client.user.setPresence({ activity: { name: 'everything', type: 'LISTENING' }, status: 'online' })
         .catch(console.error);
 });
 
@@ -93,3 +125,107 @@ client.on('message', async message => {
         message.reply(`I tried so hard... but in the end... I couldn't do what you asked.`);
     }
 });
+
+// Event listening
+client.on("messageDelete", async message => {
+    eventName = "messagedelete";
+    console.log(eventName);
+    const event = client.gEvents.get(eventName)
+        || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    const entry = await message.guild.fetchAuditLogs({ type: 'MESSAGE_DELETE' })
+        .then(audit => audit.entries.first())
+        .then(audit => {
+            event.execute(message, audit);
+        });
+});
+
+client.on("messageUpdate", (oldMessage, newMessage) => {
+    eventName = "messageupdate";
+    console.log(eventName);
+    const event = client.gEvents.get(eventName)
+        || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    event.execute(oldMessage, newMessage);
+});
+
+client.on("guildMemberAdd", member => {
+    eventName = "guildmemberadd";
+    console.log(eventName);
+    member.send("Hello there!, welcome to the server");
+    const event = client.gEvents.get(eventName)
+        || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    event.execute(member);
+});
+
+client.on("guildMemberRemove", member => {
+    eventName = "guildmemberremove";
+    console.log(eventName);
+    const event = client.gEvents.get(eventName)
+        || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    event.execute(member);
+});
+
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+    eventName = "guildmemberupdate";
+    console.log(eventName);
+    const event = client.gEvents.get(eventName)
+        || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    if (oldMember.pending && !newMember.pending) {
+        try {
+            const role = newMember.guild.roles.cache.find(role => role.name === 'Meme Peasant');
+            if (role) await newMember.roles.add(role).catch(console.error);
+            event.execute(newMember);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+    // else {
+    //     let options;
+    //     try {
+    //         // Initialize option if empty
+    //         if (!options) {
+    //             options = {};
+    //         }
+
+    //         if (options[newMember.guild.id]) {
+    //             options = options[newMember.guild.id];
+    //         }
+
+    //         // Add default empty list
+    //         if (typeof options.excludedroles === "undefined") options.excludedroles = new Array([]);
+    //         if (typeof options.trackroles === "undefined") options.trackroles = false;
+    //         if (options.trackroles !== false) {
+    //             const oldMemberRoles = oldMember.roles.cache.keyArray();
+    //             const newMemberRoles = newMember.roles.cache.keyArray();
+
+
+    //             // Check inspired by https://medium.com/@alvaro.saburido/set-theory-for-arrays-in-es6-eb2f20a61848
+    //             const oldRoles = oldMemberRoles.filter(x => !options.excludedroles.includes(x)).filter(x => !newMemberRoles.includes(x));
+    //             const newRoles = newMemberRoles.filter(x => !options.excludedroles.includes(x)).filter(x => !oldMemberRoles.includes(x));
+
+    //             const rolechanged = (newRoles.length || oldRoles.length);
+
+    //             if (rolechanged) {
+    //                 let roleadded = "";
+    //                 if (newRoles.length > 0) {
+    //                     for (let i = 0; i < newRoles.length; i++) {
+    //                         if (i > 0) roleadded += ", ";
+    //                         roleadded += `<@&${newRoles[i]}>`;
+    //                     }
+    //                 }
+
+    //                 let roleremoved = "";
+    //                 if (oldRoles.length > 0) {
+    //                     for (let i = 0; i < oldRoles.length; i++) {
+    //                         if (i > 0) roleremoved += ", ";
+    //                         roleremoved += `<@&${oldRoles[i]}>`;
+    //                     }
+    //                 }
+    //                 event.execute(oldMember, newMember, roleadded, roleremoved);
+    //             };
+    //         }
+    //     } catch (error) {
+    //         console.log(error);
+    //     }
+    // }
+});
+

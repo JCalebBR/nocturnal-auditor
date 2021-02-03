@@ -1,6 +1,6 @@
 module.exports = {
-    name: 'reload',
-    aliases: ['r', 'update', 'u'],
+    name: 'commandUpdate',
+    aliases: ['c', 'cu', 'cr', 'commandupdate'],
     args: true,
     guildOnly: false,
     cooldown: 0,
