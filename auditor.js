@@ -15,6 +15,7 @@ Structures.extend('GuildMember', GuildMember => {
         }
 
         _patch(data) {
+            // @ts-ignore
             super._patch(data);
             this.pending = data.pending ?? false;
         }
@@ -126,6 +127,7 @@ client.on('message', async message => {
     }
 });
 
+let eventName;
 // Event listening
 client.on("messageDelete", async message => {
     eventName = "messagedelete";
@@ -150,7 +152,6 @@ client.on("messageUpdate", (oldMessage, newMessage) => {
 client.on("guildMemberAdd", member => {
     eventName = "guildmemberadd";
     console.log(eventName);
-    member.send("Hello there!, welcome to the server");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
     event.execute(member);
