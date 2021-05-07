@@ -27,7 +27,7 @@ module.exports = class EmbedBuilder {
         else if (this.event === 'MESSAGE UPDATED') return this.messageUpdated(this.message, this.newMessage);
         else if (this.event === 'GUILD MEMBER ADD') return this.guildMemberAdd(this.message);
         else if (this.event === 'GUILD MEMBER REMOVE') return this.guildMemberRemove(this.message);
-        else if (this.event === 'GUILD MEMBER UPDATE') return this.guildMemberUpdate(this.message, this.newMessage);
+        else if (this.event === 'GUILD MEMBER UPDATE') return this.guildMemberUpdate(this.message);
         else return `UNKNOWN EVENT`;
     };
 
@@ -48,10 +48,14 @@ module.exports = class EmbedBuilder {
         let description = `
             **Author : ** ${message.author} - ${message.author.tag}
             **Channel : ** ${message.channel}
-            **Date : ** ${message.createdAt}
+            **Date : ** ${message.createdAt}`;
+        if (!message.content || !newMessage.content) {
+            description += `\n**Original or Edited Message too big, I'm lazy!**`;
+        } else {
+            description += `
             **Original message : ** \`\`\`${message.content.replace(/`/g, "'")}\`\`\`
             **Edited message : ** \`\`\`${newMessage.content.replace(/`/g, "'")}\`\`\``;
-
+        }
         if (message.attachments.size > 0) description += `\n**Original attachments: ** ${message.attachments.map(x => x.proxyURL)}`;
         if (newMessage.attachments.size > 0) description += `\n**New attachments: ** ${newMessage.attachments.map(x => x.proxyURL)}`;
 

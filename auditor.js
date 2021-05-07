@@ -50,7 +50,6 @@ for (const file of commandFiles) {
     client.commands.set(command.name, command);
 }
 
-
 const cooldowns = new Discord.Collection();
 
 // Ready
@@ -179,54 +178,4 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
             console.log(error);
         }
     }
-    // else {
-    //     let options;
-    //     try {
-    //         // Initialize option if empty
-    //         if (!options) {
-    //             options = {};
-    //         }
-
-    //         if (options[newMember.guild.id]) {
-    //             options = options[newMember.guild.id];
-    //         }
-
-    //         // Add default empty list
-    //         if (typeof options.excludedroles === "undefined") options.excludedroles = new Array([]);
-    //         if (typeof options.trackroles === "undefined") options.trackroles = false;
-    //         if (options.trackroles !== false) {
-    //             const oldMemberRoles = oldMember.roles.cache.keyArray();
-    //             const newMemberRoles = newMember.roles.cache.keyArray();
-
-
-    //             // Check inspired by https://medium.com/@alvaro.saburido/set-theory-for-arrays-in-es6-eb2f20a61848
-    //             const oldRoles = oldMemberRoles.filter(x => !options.excludedroles.includes(x)).filter(x => !newMemberRoles.includes(x));
-    //             const newRoles = newMemberRoles.filter(x => !options.excludedroles.includes(x)).filter(x => !oldMemberRoles.includes(x));
-
-    //             const rolechanged = (newRoles.length || oldRoles.length);
-
-    //             if (rolechanged) {
-    //                 let roleadded = "";
-    //                 if (newRoles.length > 0) {
-    //                     for (let i = 0; i < newRoles.length; i++) {
-    //                         if (i > 0) roleadded += ", ";
-    //                         roleadded += `<@&${newRoles[i]}>`;
-    //                     }
-    //                 }
-
-    //                 let roleremoved = "";
-    //                 if (oldRoles.length > 0) {
-    //                     for (let i = 0; i < oldRoles.length; i++) {
-    //                         if (i > 0) roleremoved += ", ";
-    //                         roleremoved += `<@&${oldRoles[i]}>`;
-    //                     }
-    //                 }
-    //                 event.execute(oldMember, newMember, roleadded, roleremoved);
-    //             };
-    //         }
-    //     } catch (error) {
-    //         console.log(error);
-    //     }
-    // }
 });
-
