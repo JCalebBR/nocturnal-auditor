@@ -99,7 +99,6 @@ module.exports = class EmbedBuilder {
 
     }
     guildMemberUpdate(oldMember) {
-        console.log(oldMember);
         this.thumbnail = {
             url: oldMember.user.displayAvatarURL()
         };

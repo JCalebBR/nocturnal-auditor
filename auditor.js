@@ -25,8 +25,11 @@ Structures.extend('GuildMember', GuildMember => {
 
 const client = new Discord.Client();
 const path = require('path');
+const Logging = require('./util/log');
 const eventsDirPath = path.resolve(__dirname, './events');
 const commandsDirPath = path.resolve(__dirname, './commands');
+
+const Log = new Logging();
 
 client.gEvents = new Discord.Collection();
 const eventFiles = fs.readdirSync(eventsDirPath).filter(file => file.endsWith('.js'));
@@ -54,7 +57,7 @@ const cooldowns = new Discord.Collection();
 
 // Ready
 client.once('ready', () => {
-    console.log('Ready!');
+    Log.log("Ready!");
     // Presence
     client.user.setPresence({ activity: { name: 'everything', type: 'LISTENING' }, status: 'online' })
         .catch(console.error);
@@ -72,19 +75,24 @@ client.on('message', async message => {
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     // Actual command received
     const commandName = args.shift().toLowerCase();
-    // Check if there isd a command file for the command or if it is an alias
+    // Check if there is a command file for the command or if it is an alias
     const command = client.commands.get(commandName)
         || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
     // If no command found, exit
-    if (!command) return;
+    if (!command) {
+        Log.error(`${message.author} tried to use the command "${command}" which doesn't appear to exist!`);
+        return;
+    }
     // Checks if the command is for staff use
     if (command.admin) {
         if (!message.member.roles.cache.find(r => r.name === "Moderators")) {
+            Log.warn(`${message.author} tried to use the staff command "${command}"!`);
             message.channel.send(`I'm sorry ${message.author}, I'm afraid I can't do that\nYou don't have the necessary role.`);
         }
     }
     // Checks if the command is meant to be used only in servers
     if (command.guildOnly && message.channel.type === 'dm') {
+        Log.warn(`${message.author} tried to use the command "${command}" inside of DMs, but the command is guildOnly`);
         return message.reply('I can\'t execute that command inside DMs!');
     }
     // Checks if the command needs arguments
@@ -94,7 +102,7 @@ client.on('message', async message => {
         if (command.usage) {
             reply += `\nThe proper usage would be: \`${prefix}${commandName} ${command.usage}\``;
         }
-
+        Log.error(`${message.author} tried to use the command "${command}" without arguments!`);
         return message.reply(reply);
     }
     // Cooldown
@@ -111,6 +119,7 @@ client.on('message', async message => {
 
         if (now < expirationTime) {
             const timeLeft = (expirationTime - now) / 1000;
+            Log.debug(`${message.author} tried to use the command "${command}" while it was on cooldown!`);
             return message.reply(`please wait ${timeLeft.toFixed(1)} more second(s) before reusing the \`${command.name}\` command.`);
         }
     }
@@ -121,7 +130,7 @@ client.on('message', async message => {
     try {
         command.execute(message, args, commandName);
     } catch (error) {
-        console.error(error);
+        Log.error(`${message.author} tried to use ${command}, which resulted in an error | ${error}`);
         message.reply(`I tried so hard... but in the end... I couldn't do what you asked.`);
     }
 });
@@ -130,52 +139,66 @@ let eventName;
 // Event listening
 client.on("messageDelete", async message => {
     eventName = "messagedelete";
-    console.log(eventName);
+    Log.debug("MESSAGE DELETED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
     const entry = await message.guild.fetchAuditLogs({ type: 'MESSAGE_DELETE' })
         .then(audit => audit.entries.first())
-        .then(audit => {
-            event.execute(message, audit);
-        });
+        .then(async audit => {
+            Log.debug(`MESSAGE DELETED | Attempting to audit!`);
+            await event.execute(message, audit, Log);
+        })
+        .catch(error => Log.error(`MESSAGE DELETED | Error at audition | ${error}`));
 });
 
-client.on("messageUpdate", (oldMessage, newMessage) => {
+client.on("messageUpdate", async (oldMessage, newMessage) => {
     eventName = "messageupdate";
-    console.log(eventName);
+    Log.debug("MESSAGE UPDATED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    event.execute(oldMessage, newMessage);
+    Log.debug(`MESSAGE UPDATED | Attempting to audit!`);
+    await event.execute(oldMessage, newMessage, Log);
 });
 
-client.on("guildMemberAdd", member => {
+client.on("guildMemberAdd", async member => {
     eventName = "guildmemberadd";
-    console.log(eventName);
+    Log.debug("GUILD MEMBER ADDED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    event.execute(member);
+    Log.debug(`GUILD MEMBER ADDED | Attempting to audit!`);
+    await event.execute(member, Log);
 });
 
-client.on("guildMemberRemove", member => {
+client.on("guildMemberRemove", async member => {
     eventName = "guildmemberremove";
-    console.log(eventName);
+    Log.debug("GUILD MEMBER REMOVED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    event.execute(member);
+    Log.debug(`GUILD MEMBER REMOVED | Attempting to audit!`);
+    await event.execute(member, Log);
 });
 
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
     eventName = "guildmemberupdate";
-    console.log(eventName);
+    Log.debug("GUILD MEMBER UPDATED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    Log.debug(`GUILD MEMBER UPDATED | Attempting to audit!`);
     if (oldMember.pending && !newMember.pending) {
+        Log.debug("GUILD MEMBER UPDATED | Rules acceptance changed!");
         try {
-            const role = newMember.guild.roles.cache.find(role => role.name === 'Meme Peasant');
-            if (role) await newMember.roles.add(role).catch(console.error);
-            event.execute(newMember);
+            const role = newMember.guild.roles.cache.find(
+                role => role.name === 'Meme Peasant' || role.id === "782021464060330034");
+            Log.debug(`GUILD MEMBER UPDATED | Attempting to give default role ${role}!`);
+            if (role) {
+                oldMember.roles.add(role);
+                newMember.roles.add(role);
+                Log.debug("I'm here");
+            }
+            // .catch(error => Log.error(`GUILD MEMBER UPDATED | Role change failed! | ${error}`));
+            await event.execute(newMember, Log);
         } catch (error) {
-            console.log(error);
+            Log.error(`GUILD MEMBER UPDATED | Something broke! | ${error}`);
         }
     }
 });

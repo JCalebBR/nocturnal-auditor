@@ -4,7 +4,7 @@ const EmbedBuilder = require('../util/EmbedBuilder.js');
 module.exports = {
     name: 'messageDelete',
     aliases: ['messagedelete'],
-    execute(message, audit) {
+    async execute(message, audit, Log) {
         if (message.channel.type !== "text") return;
 
         let executor = "";
@@ -19,16 +19,16 @@ module.exports = {
 
         if (message && message.member && typeof message.member.guild === "object") {
             try {
+                Log.debug(`MESSAGE DELETED | Attempting to build Embed!`);
                 let newEmbed = new EmbedBuilder('MESSAGE DELETED', message, null, executor);
-                event.send(message, { embed: newEmbed });
+                Log.debug(`MESSAGE DELETED | Embed built successfully!`);
+                Log.debug(`MESSAGE DELETED | Attempting to send!`);
+                await event.send(message, { embed: newEmbed }, Log);
             } catch (error) {
-                console.error(error);
+                Log.error(`MESSAGE DELETED | Error at embed build | ${error}`);
             }
         } else {
-            console.log(`messageDelete - ERROR - member guild id couldn't be retrieved`);
-            console.log("author", message.author);
-            console.log("member", message.member);
-            console.log("content", message.content);
+            Log.error(`MESSAGE DELETED | Member guild id couldn't be retrieved | Author ${message.author}, Member ${message.member}, Content ${message.content}`);
         }
     }
 };

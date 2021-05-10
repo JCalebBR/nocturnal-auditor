@@ -4,12 +4,15 @@ const EmbedBuilder = require('../util/EmbedBuilder.js');
 module.exports = {
     name: 'guildMemberAdd',
     aliases: ['guildmemberadd'],
-    execute(member) {
+    async execute(member, Log) {
         try {
+            Log.debug(`GUILD MEMBER ADDED | Attempting to build Embed!`);
             let newEmbed = new EmbedBuilder('GUILD MEMBER ADD', member);
-            event.send(member, { embed: newEmbed });
+            Log.debug(`GUILD MEMBER ADDED | Embed built successfully!`);
+            Log.debug(`GUILD MEMBER ADDED | Attempting to send!`);
+            await event.send(member, { embed: newEmbed }, Log);
         } catch (error) {
-            console.error(error);
+            Log.error(`GUILD MEMBER ADDED | Error when sending | ${error}`);
         }
     }
 };
