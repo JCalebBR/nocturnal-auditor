@@ -1,11 +1,11 @@
 module.exports = {
-    name: 'commandUpdate',
-    aliases: ['c', 'cu', 'cr', 'commandupdate'],
+    name: "commandUpdate",
+    aliases: ["c", "cu", "cr", "commandupdate"],
     args: true,
     guildOnly: false,
     cooldown: 0,
-    description: 'reloads a command',
-    usage: '<command>',
+    description: "reloads a command",
+    usage: "<command>",
     admin: true,
     execute(message, args) {
         const commandName = args[0].toLowerCase();

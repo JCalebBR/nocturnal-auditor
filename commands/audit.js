@@ -1,13 +1,13 @@
-const path = require('path');
-const fileName = path.resolve('./config.json');
-const fs = require('fs');
+const path = require("path");
+const fileName = path.resolve("./config.json");
+const fs = require("fs");
 
 module.exports = {
-    name: 'audit',
+    name: "audit",
     args: false,
     guildOnly: true,
-    description: 'Sets the default channel to post audit logs',
-    usage: 'optional: <channel>',
+    description: "Sets the default channel to post audit logs",
+    usage: "optional: <channel>",
     admin: true,
     execute(message, args) {
         message.channel.send("Trying...")
@@ -15,14 +15,15 @@ module.exports = {
                 fs.readFile(fileName, (err, data) => {
                     if (err) throw err;
 
+                    // @ts-ignore
                     let json = JSON.parse(data);
                     let channel;
                     let response;
                     console.log(json);
                     if (!args.length) {
-                        response = `Current audit channel is <#${json.auditChannel || 'None'}>`;
+                        response = `Current audit channel is <#${json.auditChannel || "None"}>`;
                         message.delete({ timeout: 100 }).then(message.channel.send(response));
-                    } else if (args[0] === 'reset') {
+                    } else if (args[0] === "reset") {
                         json.auditChannel = "";
                         response = "Audit channel reset.";
                         writeFile(fileName, json, message, channel, response);

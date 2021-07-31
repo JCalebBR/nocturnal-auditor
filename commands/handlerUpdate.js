@@ -1,13 +1,13 @@
-const path = require('path');
-const dirPath = path.resolve('./events/');
+const path = require("path");
+const dirPath = path.resolve("./events/");
 module.exports = {
-    name: 'handlerUpdate',
-    aliases: ['hu', 'handlerupdate', 'hr'],
+    name: "handlerUpdate",
+    aliases: ["hu", "handlerupdate", "hr"],
     args: true,
     guildOnly: false,
     cooldown: 0,
-    description: 'reloads a command',
-    usage: '<command>',
+    description: "reloads a command",
+    usage: "<command>",
     admin: true,
     execute(message, args) {
         const eventName = args[0].toLowerCase();

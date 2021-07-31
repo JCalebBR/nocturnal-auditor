@@ -5,8 +5,10 @@
     "discord.js": "^12.5.1",
     "discord.js-menu": "^2.3.0",
     "erlpack": "github:discord/erlpack",
+    "fs": "0.0.1-security",
     "node-fetch": "^2.6.1",
     "optionator": "^0.9.1",
+    "path": "^0.12.7",
     "utf-8-validate": "^5.0.3"
   },
   "optionalDependencies": {
@@ -14,6 +16,7 @@
     "utf-8-validate": "^5.0.3"
   },
   "devDependencies": {
+    "@types/node": "^16.4.8",
     "eslint": "^7.15.0"
   }
 }

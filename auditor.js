@@ -184,6 +184,7 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
     Log.debug(`GUILD MEMBER UPDATED | Attempting to audit!`);
+    // @ts-ignore
     if (oldMember.pending && !newMember.pending) {
         Log.debug("GUILD MEMBER UPDATED | Rules acceptance changed!");
         try {

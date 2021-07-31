@@ -130,3 +130,4 @@ bands.json
 commands/user.js
 auditor.code-workspace
 old/
+.eslintrc.json
