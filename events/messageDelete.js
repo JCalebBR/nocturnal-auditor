@@ -5,8 +5,11 @@ module.exports = {
     name: 'messageDelete',
     aliases: ['messagedelete'],
     async execute(message, audit, Log) {
-        if (message.channel.type !== "text") return;
-
+        const channels = ["GUILD_TEXT", "GUILD_PUBLIC_THREAD", "GUILD_PRIVATE_THREAD"];
+        if (!channels.includes(message.channel.type)) {
+            Log.debug(`MESSAGE DELETED | UNSUPPORTED CHANNEL TYPE!`);
+            return;
+        }
         let executor = "";
         if (audit.extra.channel.id === message.channel.id
             && (audit.target.id === message.author.id)
@@ -23,7 +26,7 @@ module.exports = {
                 let newEmbed = new EmbedBuilder('MESSAGE DELETED', message, null, executor);
                 Log.debug(`MESSAGE DELETED | Embed built successfully!`);
                 Log.debug(`MESSAGE DELETED | Attempting to send!`);
-                await event.send(message, { embed: newEmbed }, Log);
+                await event.send(message, { embeds: [newEmbed] }, Log);
             } catch (error) {
                 Log.error(`MESSAGE DELETED | Error at embed build | ${error}`);
             }

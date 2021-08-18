@@ -19,15 +19,14 @@ module.exports = class EmbedBuilder {
             icon_url: events[this.event].url
         };
         this.images = null;
-
     };
 
     setDescription() {
         if (this.event === 'MESSAGE DELETED') return this.messageDeleted(this.message);
         else if (this.event === 'MESSAGE UPDATED') return this.messageUpdated(this.message, this.newMessage);
-        else if (this.event === 'GUILD MEMBER ADD') return this.guildMemberAdd(this.message);
-        else if (this.event === 'GUILD MEMBER REMOVE') return this.guildMemberRemove(this.message);
-        else if (this.event === 'GUILD MEMBER UPDATE') return this.guildMemberUpdate(this.message);
+        else if (this.event === 'GUILD MEMBER ADDED') return this.guildMemberAdd(this.message);
+        else if (this.event === 'GUILD MEMBER REMOVED') return this.guildMemberRemove(this.message);
+        else if (this.event === 'GUILD MEMBER UPDATED') return this.guildMemberUpdate(this.message);
         else return `UNKNOWN EVENT`;
     };
 

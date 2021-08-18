@@ -1,12 +1,15 @@
 const event = require('../util/send.js');
 const EmbedBuilder = require('../util/EmbedBuilder.js');
-const { DiscordAPIError } = require('discord.js');
 
 module.exports = {
     name: 'messageUpdate',
     aliases: ['messageupdate'],
     async execute(oldMessage, newMessage, Log) {
-        if (oldMessage.channel.type !== "text") return;
+        const channels = ["GUILD_TEXT", "GUILD_PUBLIC_THREAD", "GUILD_PRIVATE_THREAD", "GUILD_NEWS", "GUILD_NEWS_THREAD"];
+        if (!channels.includes(oldMessage.channel.type)) {
+            Log.debug(`MESSAGE UPDATED | UNSUPPORTED CHANNEL TYPE!`);
+            return;
+        }
         if (oldMessage.content === newMessage.content) return;
 
         try {
@@ -14,7 +17,7 @@ module.exports = {
             let newEmbed = new EmbedBuilder('MESSAGE UPDATED', oldMessage, newMessage);
             Log.debug(`MESSAGE UPDATED | Embed built successfully!`);
             Log.debug(`MESSAGE UPDATED | Attempting to send!`);
-            await event.send(newMessage, { embed: newEmbed }, Log);
+            await event.send(newMessage, { embeds: [newEmbed] }, Log);
         } catch (error) {
             delete oldMessage.content;
             delete newMessage.content;
@@ -23,7 +26,7 @@ module.exports = {
             let newEmbed = new EmbedBuilder('MESSAGE UPDATED', oldMessage, newMessage);
             Log.debug(`MESSAGE UPDATED | Lazy Embed built successfully!`);
             Log.debug(`MESSAGE UPDATED | Attempting to send!`);
-            await event.send(newMessage, { embed: newEmbed }, Log);
+            await event.send(newMessage, { embeds: [newEmbed] }, Log);
         }
     }
 };

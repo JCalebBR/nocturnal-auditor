@@ -12,7 +12,7 @@ module.exports = {
         // @ts-ignore
         message.channel.bulkDelete(amount, true).catch(error => {
             console.log(error);
-            message.channel.send(`I tried so hard... but in the end... I couldn't do what you asked.`);
+            message.reply(`I tried so hard... but in the end... I couldn't do what you asked.`);
         });
     }
 };

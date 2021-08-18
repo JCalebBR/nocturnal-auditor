@@ -19,7 +19,7 @@ module.exports = {
 
             return message.author.send(data, { split: true })
                 .then(() => {
-                    if (message.channel.type === "dm") return;
+                    if (message.channel.type === "DM") return;
                     message.reply("I\"ve sent you a DM with all my commands!");
                 })
                 .catch(error => {

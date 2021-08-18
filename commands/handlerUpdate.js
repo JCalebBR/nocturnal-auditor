@@ -24,7 +24,7 @@ module.exports = {
             message.reply(`Event handler \`${event.name}\` was updated!`);
         } catch (error) {
             console.error(error);
-            message.channel.send(`There was an error while reloading a command \`${event.name}\`:\n\`${error.message}\``);
+            message.reply(`There was an error while reloading a command \`${event.name}\`:\n\`${error.message}\``);
         }
     }
 };

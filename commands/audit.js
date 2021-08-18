@@ -15,24 +15,23 @@ module.exports = {
                 fs.readFile(fileName, (err, data) => {
                     if (err) throw err;
 
-                    // @ts-ignore
-                    let json = JSON.parse(data);
-                    let channel;
-                    let response;
+                    let json = JSON.parse(data.toString());
+                    let channel, response;
                     console.log(json);
                     if (!args.length) {
                         response = `Current audit channel is <#${json.auditChannel || "None"}>`;
-                        message.delete({ timeout: 100 }).then(message.channel.send(response));
                     } else if (args[0] === "reset") {
                         json.auditChannel = "";
                         response = "Audit channel reset.";
-                        writeFile(fileName, json, message, channel, response);
+                        writeFile(fileName, json, message, channel);
                     } else {
                         channel = args[0].replace(/[^\w\s]/gi, "");
                         json.auditChannel = `${channel}`;
                         response = `Done! Audit channel set to <#${channel}>.`;
-                        writeFile(fileName, json, message, response);
+                        writeFile(fileName, json, message);
+
                     }
+                    message.reply(response);
                     console.log(channel);
                 });
             })
@@ -40,11 +39,9 @@ module.exports = {
     }
 };
 
-function writeFile(fileName, json, message, channel, response) {
+function writeFile(fileName, json, message, channel) {
     json = JSON.stringify(json, null, 2);
     fs.writeFile(fileName, json, (err) => {
         if (err) throw err;
-        message.delete({ timeout: 100 }).then(message.channel.send(response));
-        message.client.channels.cache.get(channel).send("test");
     });
 }

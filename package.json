@@ -1,15 +1,13 @@
 {
   "dependencies": {
-    "bufferutil": "^4.0.2",
     "discord-auditlog": "^2.2.3",
-    "discord.js": "^12.5.1",
+    "discord.js": "^13.1.0",
     "discord.js-menu": "^2.3.0",
     "erlpack": "github:discord/erlpack",
     "fs": "0.0.1-security",
     "node-fetch": "^2.6.1",
     "optionator": "^0.9.1",
-    "path": "^0.12.7",
-    "utf-8-validate": "^5.0.3"
+    "path": "^0.12.7"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.2",
@@ -18,5 +16,8 @@
   "devDependencies": {
     "@types/node": "^16.4.8",
     "eslint": "^7.15.0"
+  },
+  "scripts": {
+    "start": "node auditor.js"
   }
 }

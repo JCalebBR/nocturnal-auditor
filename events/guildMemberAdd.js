@@ -7,10 +7,10 @@ module.exports = {
     async execute(member, Log) {
         try {
             Log.debug(`GUILD MEMBER ADDED | Attempting to build Embed!`);
-            let newEmbed = new EmbedBuilder('GUILD MEMBER ADD', member);
+            let newEmbed = new EmbedBuilder('GUILD MEMBER ADDED', member);
             Log.debug(`GUILD MEMBER ADDED | Embed built successfully!`);
             Log.debug(`GUILD MEMBER ADDED | Attempting to send!`);
-            await event.send(member, { embed: newEmbed }, Log);
+            await event.send(member, { embeds: [newEmbed] }, Log);
         } catch (error) {
             Log.error(`GUILD MEMBER ADDED | Error when sending | ${error}`);
         }

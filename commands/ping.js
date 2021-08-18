@@ -6,6 +6,6 @@ module.exports = {
     description: "",
     usage: "",
     execute(message) {
-        message.channel.send("pong!");
+        message.reply("pong!");
     }
 };

@@ -1,38 +1,28 @@
-const fs = require('fs');
+const fs = require("fs");
 
-const Discord = require('discord.js');
-const { token, prefix } = require('./config.json');
-// PATCH TO ADD GUILDMEMBER.PENDING
-const { Structures } = require('discord.js');
+const Discord = require("discord.js");
+const { token, prefix } = require("./config.json");
 
-Structures.extend('GuildMember', GuildMember => {
-    class GuildMemberWithPending extends GuildMember {
-        pending = false;
+const botIntents = new Discord.Intents();
+botIntents.add(
+    Discord.Intents.FLAGS.DIRECT_MESSAGES,
+    Discord.Intents.FLAGS.DIRECT_MESSAGE_TYPING,
+    Discord.Intents.FLAGS.GUILDS,
+    Discord.Intents.FLAGS.GUILD_MEMBERS,
+    Discord.Intents.FLAGS.GUILD_MESSAGES,
+    Discord.Intents.FLAGS.GUILD_MESSAGE_TYPING,
+    Discord.Intents.FLAGS.GUILD_BANS);
 
-        constructor(client, data, guild) {
-            super(client, data, guild);
-            this.pending = data.pending ?? false;
-        }
-
-        _patch(data) {
-            // @ts-ignore
-            super._patch(data);
-            this.pending = data.pending ?? false;
-        }
-    }
-    return GuildMemberWithPending;
-});
-
-const client = new Discord.Client();
-const path = require('path');
-const Logging = require('./util/log');
-const eventsDirPath = path.resolve(__dirname, './events');
-const commandsDirPath = path.resolve(__dirname, './commands');
+const client = new Discord.Client({ intents: botIntents });
+const path = require("path");
+const Logging = require("./util/log");
+const eventsDirPath = path.resolve(__dirname, "./events");
+const commandsDirPath = path.resolve(__dirname, "./commands");
 
 const Log = new Logging();
-
+'';
 client.gEvents = new Discord.Collection();
-const eventFiles = fs.readdirSync(eventsDirPath).filter(file => file.endsWith('.js'));
+const eventFiles = fs.readdirSync(eventsDirPath).filter(file => file.endsWith(".js"));
 
 for (const file of eventFiles) {
     const event = require(`./events/${file}`);
@@ -43,7 +33,7 @@ for (const file of eventFiles) {
 }
 
 client.commands = new Discord.Collection();
-const commandFiles = fs.readdirSync(commandsDirPath).filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync(commandsDirPath).filter(file => file.endsWith(".js"));
 
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
@@ -56,18 +46,17 @@ for (const file of commandFiles) {
 const cooldowns = new Discord.Collection();
 
 // Ready
-client.once('ready', () => {
+client.once("ready", () => {
     Log.log("Ready!");
     // Presence
-    client.user.setPresence({ activity: { name: 'everything', type: 'LISTENING' }, status: 'online' })
-        .catch(console.error);
+    client.user.setPresence({ activities: [{ name: "everything", type: "LISTENING" }], status: "online" });
 });
 
 // Login using token
 client.login(token);
 
 // Commands
-client.on('message', async message => {
+client.on("messageCreate", async message => {
     // Checks if message starts with a prefix or if it's not from another bot
     if (!message.content.startsWith(prefix) || message.author.bot) return;
 
@@ -91,9 +80,10 @@ client.on('message', async message => {
         }
     }
     // Checks if the command is meant to be used only in servers
-    if (command.guildOnly && message.channel.type === 'dm') {
+    if (command.guildOnly && message.channel.type === "DM") {
         Log.warn(`${message.author} tried to use the command "${command}" inside of DMs, but the command is guildOnly`);
-        return message.reply('I can\'t execute that command inside DMs!');
+        message.reply("I can\'t execute that command inside DMs!");
+        return;
     }
     // Checks if the command needs arguments
     if (command.args && !args.length) {
@@ -103,7 +93,8 @@ client.on('message', async message => {
             reply += `\nThe proper usage would be: \`${prefix}${commandName} ${command.usage}\``;
         }
         Log.error(`${message.author} tried to use the command "${command}" without arguments!`);
-        return message.reply(reply);
+        message.reply(reply);
+        return;
     }
     // Cooldown
     if (!cooldowns.has(command.name)) {
@@ -120,10 +111,10 @@ client.on('message', async message => {
         if (now < expirationTime) {
             const timeLeft = (expirationTime - now) / 1000;
             Log.debug(`${message.author} tried to use the command "${command}" while it was on cooldown!`);
-            return message.reply(`please wait ${timeLeft.toFixed(1)} more second(s) before reusing the \`${command.name}\` command.`);
+            message.reply(`please wait ${timeLeft.toFixed(1)} more second(s) before reusing the \`${command.name}\` command.`);
+            return;
         }
     }
-
     timestamps.set(message.author.id, now);
     setTimeout(() => timestamps.delete(message.author.id), cooldownAmount);
 
@@ -184,19 +175,20 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
     Log.debug(`GUILD MEMBER UPDATED | Attempting to audit!`);
-    // @ts-ignore
-    if (oldMember.pending && !newMember.pending) {
+    console.log(oldMember.pending, newMember.pending);
+    if (!newMember.pending) {
         Log.debug("GUILD MEMBER UPDATED | Rules acceptance changed!");
         try {
-            const role = newMember.guild.roles.cache.find(
-                role => role.name === 'Meme Peasant' || role.id === "782021464060330034");
-            Log.debug(`GUILD MEMBER UPDATED | Attempting to give default role ${role}!`);
-            if (role) {
-                oldMember.roles.add(role);
-                newMember.roles.add(role);
-                Log.debug("I'm here");
-            }
-            // .catch(error => Log.error(`GUILD MEMBER UPDATED | Role change failed! | ${error}`));
+            let roleFind = async () => {
+                return oldMember.guild.roles.cache.find(
+                    role => role.name === "Core Kid" || role.id === "782021464060330034");
+            };
+
+            Log.debug(`GUILD MEMBER UPDATED | Attempting to give default role!`);
+
+            await roleFind()
+                .then(role => newMember.roles.add(role))
+                .catch(error => Log.error(`GUILD MEMBER UPDATED | Role change failed! | ${error}`));
             await event.execute(newMember, Log);
         } catch (error) {
             Log.error(`GUILD MEMBER UPDATED | Something broke! | ${error}`);
