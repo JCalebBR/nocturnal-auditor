@@ -1,4 +1,4 @@
-const { events } = require('../config.json');
+const { events } = require("../config.json");
 module.exports = class EmbedBuilder {
     constructor(event, message, newMessage = null, executor = null) {
         this.event = event;
@@ -13,7 +13,7 @@ module.exports = class EmbedBuilder {
             icon_url: events[this.event].url
         };
         this.description = this.setDescription();
-        this.timestamp = this.message.createdAt;
+        this.timestamp = new Date();
         this.footer = {
             text: this.event,
             icon_url: events[this.event].url
@@ -22,11 +22,14 @@ module.exports = class EmbedBuilder {
     };
 
     setDescription() {
-        if (this.event === 'MESSAGE DELETED') return this.messageDeleted(this.message);
-        else if (this.event === 'MESSAGE UPDATED') return this.messageUpdated(this.message, this.newMessage);
-        else if (this.event === 'GUILD MEMBER ADDED') return this.guildMemberAdd(this.message);
-        else if (this.event === 'GUILD MEMBER REMOVED') return this.guildMemberRemove(this.message);
-        else if (this.event === 'GUILD MEMBER UPDATED') return this.guildMemberUpdate(this.message);
+        if (this.event === "MESSAGE DELETED") return this.messageDeleted(this.message);
+        else if (this.event === "MESSAGE UPDATED") return this.messageUpdated(this.message, this.newMessage);
+        else if (this.event === "THREAD CREATED") return this.threadCreated(this.message);
+        else if (this.event === "THREAD UPDATED") return this.threadUpdated(this.message, this.newMessage);
+        else if (this.event === "THREAD DELETED") return this.threadDeleted(this.message);
+        else if (this.event === "GUILD MEMBER ADDED") return this.guildMemberAdd(this.message);
+        else if (this.event === "GUILD MEMBER REMOVED") return this.guildMemberRemove(this.message);
+        else if (this.event === "GUILD MEMBER UPDATED") return this.guildMemberUpdate(this.message);
         else return `UNKNOWN EVENT`;
     };
 
@@ -49,7 +52,7 @@ module.exports = class EmbedBuilder {
             **Channel : ** ${message.channel}
             **Date : ** ${message.createdAt}`;
         if (!message.content || !newMessage.content) {
-            description += `\n**Original or Edited Message too big, I'm lazy!**`;
+            description += `\n**Original or Edited Message too big, I"m lazy!**`;
         } else {
             description += `
             **Original message : ** \`\`\`${message.content.replace(/`/g, "'")}\`\`\`
@@ -59,6 +62,45 @@ module.exports = class EmbedBuilder {
         if (newMessage.attachments.size > 0) description += `\n**New attachments: ** ${newMessage.attachments.map(x => x.proxyURL)}`;
 
         this.timestamp = newMessage.createdAt;
+        return description;
+    }
+
+    threadCreated(thread){
+        let description = `
+            **Creator : ** <@${thread.ownerId}>
+            **Thread Creation : ** ${new Date(thread.createdTimestamp)}
+            **Parent Channel : ** ${thread.parent}
+            **Thread Name : ** \`${thread.name}\`
+            **Thread Type : ** \`${thread.type === "GUILD_PRIVATE_THREAD" ? "Private":"Public"}\``
+        return description;
+    }
+
+    threadUpdated(thread, newThread){
+        let description = `
+            **Creator : ** <@${thread.ownerId}>
+            **Thread Creation : ** ${new Date(thread.createdTimestamp)}
+            **Parent Channel : ** ${thread.parent}`;
+        
+        if (thread.name !== newThread.name) {
+            description += `
+            **Old Thread Name : ** \`${thread.name}\`
+            **New Thread Name : ** \`${newThread.name}\``
+        }
+
+        if (thread.archived !== newThread.archived) {
+            description += `
+            **Thread Status: ** ${newThread.archived ? 'Archived' : 'Unarchived'}`
+        }
+        return description;
+    }
+
+    threadDeleted(thread){
+        let description = `
+            **Creator : ** <@${thread.ownerId}>
+            **Thread Creation : ** ${new Date(thread.createdTimestamp)}
+            **Parent Channel : ** ${thread.parent}
+            **Thread Name : ** \`${thread.name}\`
+            **Thread Status: ** \`${thread.archived ? 'Archived' : 'Unarchived'}\``
         return description;
     }
 

@@ -136,7 +136,7 @@ client.on("messageDelete", async message => {
     const entry = await message.guild.fetchAuditLogs({ type: 'MESSAGE_DELETE' })
         .then(audit => audit.entries.first())
         .then(async audit => {
-            Log.debug(`MESSAGE DELETED | Attempting to audit!`);
+            Log.debug("MESSAGE DELETED | Attempting to audit!");
             await event.execute(message, audit, Log);
         })
         .catch(error => Log.error(`MESSAGE DELETED | Error at audition | ${error}`));
@@ -147,7 +147,7 @@ client.on("messageUpdate", async (oldMessage, newMessage) => {
     Log.debug("MESSAGE UPDATED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug(`MESSAGE UPDATED | Attempting to audit!`);
+    Log.debug("MESSAGE UPDATED | Attempting to audit!");
     await event.execute(oldMessage, newMessage, Log);
 });
 
@@ -156,7 +156,7 @@ client.on("guildMemberAdd", async member => {
     Log.debug("GUILD MEMBER ADDED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug(`GUILD MEMBER ADDED | Attempting to audit!`);
+    Log.debug("GUILD MEMBER ADDED | Attempting to audit!");
     await event.execute(member, Log);
 });
 
@@ -165,29 +165,30 @@ client.on("guildMemberRemove", async member => {
     Log.debug("GUILD MEMBER REMOVED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug(`GUILD MEMBER REMOVED | Attempting to audit!`);
+    Log.debug("GUILD MEMBER REMOVED | Attempting to audit!");
     await event.execute(member, Log);
 });
 
-client.on('guildMemberUpdate', async (oldMember, newMember) => {
+client.on("guildMemberUpdate", async (oldMember, newMember) => {
     eventName = "guildmemberupdate";
     Log.debug("GUILD MEMBER UPDATED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
     Log.debug(`GUILD MEMBER UPDATED | Attempting to audit!`);
     console.log(oldMember.pending, newMember.pending);
-    if (!newMember.pending) {
+    if (oldMember.pending && !newMember.pending) {
         Log.debug("GUILD MEMBER UPDATED | Rules acceptance changed!");
         try {
+            // Find Role Func
             let roleFind = async () => {
                 return oldMember.guild.roles.cache.find(
                     role => role.name === "Core Kid" || role.id === "782021464060330034");
             };
-
             Log.debug(`GUILD MEMBER UPDATED | Attempting to give default role!`);
-
+            // Await Role
             await roleFind()
-                .then(role => newMember.roles.add(role))
+                // Give Role
+                .then(role => newMember.roles.set([role]))
                 .catch(error => Log.error(`GUILD MEMBER UPDATED | Role change failed! | ${error}`));
             await event.execute(newMember, Log);
         } catch (error) {
@@ -195,3 +196,30 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
         }
     }
 });
+
+client.on("threadCreate", async thread => {
+    eventName = "threadcreate";
+    Log.debug("THREAD CREATED | Event received!");
+    const event = client.gEvents.get(eventName)
+        || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    Log.debug("THREAD CREATED  | Attempting to audit!");
+    await event.execute(thread, Log);
+})
+
+client.on("threadUpdate", async (thread, newThread) => {
+    eventName = "threadupdate";
+    Log.debug("THREAD UPDATED | Event received!");
+    const event = client.gEvents.get(eventName)
+        || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    Log.debug("THREAD UPDATED  | Attempting to audit!");
+    await event.execute(thread, newThread, Log);
+})
+
+client.on("threadDelete", async thread => {
+    eventName = "threaddelete";
+    Log.debug("THREAD DELETED | Event received!");
+    const event = client.gEvents.get(eventName)
+        || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    Log.debug("THREAD DELETED  | Attempting to audit!");
+    await event.execute(thread, Log);
+})
