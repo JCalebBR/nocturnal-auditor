@@ -185,6 +185,13 @@ client.on("messageDelete", async message => {
     Log.debug("MESSAGE DELETED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    const entry = await message.guild.fetchAuditLogs({ type: 'MESSAGE_DELETE' })
+        .then(audit => audit.entries.first())
+        .then(async audit => {
+            Log.debug("MESSAGE DELETED | Attempting to audit!");
+            await event.execute(message, audit, Log);
+        })
+        .catch(error => Log.error(`MESSAGE DELETED | Error at audition | ${error}`));
 });
 
 client.on("messageUpdate", async (oldMessage, newMessage) => {
