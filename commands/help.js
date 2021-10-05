@@ -1,4 +1,4 @@
-const { prefix } = require("../config.json");
+const { prefix, pngs } = require("../config.json");
 
 module.exports = {
     name: "help",
@@ -7,43 +7,59 @@ module.exports = {
     guildOnly: false,
     cooldown: 0,
     description: "List all of my commands or info about a specific command.",
-    usage: "[command name]",
+    usage: "<command name>",
+    tag: "Help",
     execute(message, args) {
-        const data = [];
         const { commands } = message.client;
+        let embed = {
+            color: 0x0099ff,
+            author: {
+                name: "",
+                icon_url: pngs.auditor.avatar
+            },
+            description: this.description,
+            thumbnail: { url: pngs.auditor.avatar },
+            fields: [],
+        };
 
         if (!args.length) {
-            data.push("Here\"s a list of all my commands:");
-            data.push(commands.map(command => command.name).join(", "));
-            data.push(`\nYou can send \`${prefix}help [command name]\` to get info on a specific command!`);
-
-            return message.author.send(data, { split: true })
-                .then(() => {
-                    if (message.channel.type === "DM") return;
-                    message.reply("I\"ve sent you a DM with all my commands!");
-                })
-                .catch(error => {
-                    console.error(`Could not send help DM to ${message.author.tag}.\n`, error);
-                    message.reply("it seems like I can\"t DM you! Do you have DMs disabled?");
+            embed.author.name += "Auditor Help Page";
+            let tags = [];
+            commands.forEach(command => {
+                if (tags.indexOf(command.tag) === -1) tags.push(command.tag);
+            });
+            tags.forEach(tag => {
+                embed.fields.push({ name: tag, value: "", inline: true });
+            });
+            commands.forEach(command => {
+                embed.fields.forEach(field => {
+                    if (command.tag === field.name) field.value += command.name + " ";
                 });
+            });
+            return message.reply({ embeds: [embed] });
+        } else {
+            const name = args[0].toLowerCase();
+            const command = commands.get(name) || commands.find(c => c.aliases && c.aliases.includes(name));
+
+            if (!command) {
+                return message.reply(`That command does not exist!`);
+            }
+            embed.author.name += `${prefix}${command.name} | Help`;
+
+            embed.fields.push({ name: `Aliases:`, value: `${command.aliases.join(", ") || "No aliases"}` });
+
+            embed.fields.push({ name: `Description:`, value: `${command.description || "No description"}` });
+
+            embed.fields.push({ name: `Usage:`, value: `\`${prefix}${command.name} ${command.usage || ""}\``, inline: true });
+
+            embed.fields.push({ name: `Cooldown:`, value: `${command.cooldown || 3} seconds`, inline: true });
+
+            embed.fields.push({ name: `Server only:`, value: `${command.guildOnly}`, inline: true });
+
+            if (command.admin) embed.fields.push({ name: `Admin:`, value: `${command.admin}`, inline: true });
+
+            message.reply({ embeds: [embed] });
         }
-
-        const name = args[0].toLowerCase();
-        const command = commands.get(name) || commands.find(c => c.aliases && c.aliases.includes(name));
-
-        if (!command) {
-            return message.reply("that\"s not a valid command!");
-        }
-
-        data.push(`**Name:** ${command.name}`);
-
-        if (command.aliases) data.push(`**Aliases:** ${command.aliases.join(", ")}`);
-        if (command.description) data.push(`**Description:** ${command.description}`);
-        if (command.usage) data.push(`**Usage:** ${prefix}${command.name} ${command.usage}`);
-
-        data.push(`**Cooldown:** ${command.cooldown || 3} second(s)`);
-
-        message.channel.send(data, { split: true });
     }
 };
 

@@ -1,11 +1,12 @@
 module.exports = {
     name: "ping",
-    aliases: [],
+    aliases: ["pong"],
     args: false,
     guildOnly: true,
-    description: "",
+    description: "Checks latency or if the bot is alive",
     usage: "",
+    tag: "Misc.",
     execute(message) {
-        message.reply("pong!");
+        message.reply(`🤖 BOT latency is \`${Date.now() - message.createdTimestamp}ms\`\n🏓 API Latency is \`${Math.round(message.client.ws.ping)}ms\``);
     }
 };

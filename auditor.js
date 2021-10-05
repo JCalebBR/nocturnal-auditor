@@ -1,3 +1,4 @@
+const { CronJob } = require("cron");
 const fs = require("fs");
 
 const Discord = require("discord.js");
@@ -11,6 +12,7 @@ botIntents.add(
     Discord.Intents.FLAGS.GUILD_MEMBERS,
     Discord.Intents.FLAGS.GUILD_MESSAGES,
     Discord.Intents.FLAGS.GUILD_MESSAGE_TYPING,
+    Discord.Intents.FLAGS.GUILD_PRESENCES,
     Discord.Intents.FLAGS.GUILD_BANS);
 
 const client = new Discord.Client({ intents: botIntents });
@@ -20,7 +22,6 @@ const eventsDirPath = path.resolve(__dirname, "./events");
 const commandsDirPath = path.resolve(__dirname, "./commands");
 
 const Log = new Logging();
-'';
 client.gEvents = new Discord.Collection();
 const eventFiles = fs.readdirSync(eventsDirPath).filter(file => file.endsWith(".js"));
 
@@ -43,6 +44,28 @@ for (const file of commandFiles) {
     client.commands.set(command.name, command);
 }
 
+const fiveMinutesDirPath = path.resolve(__dirname, "./commands/five-minutes");
+const fiveMinutesCommands = fs.readdirSync(fiveMinutesDirPath).filter(file => file.endsWith(".js"));
+client.fiveMinutes = new Discord.Collection();
+for (const file of fiveMinutesCommands) {
+    const command = require(`${fiveMinutesDirPath}/${file}`);
+
+    // set a new item in the Collection
+    // with the key as the command name and the value as the exported module
+    client.fiveMinutes.set(command.name, command);
+}
+
+const hourlyDirPath = path.resolve(__dirname, "./commands/hourly");
+const hourlyCommands = fs.readdirSync(hourlyDirPath).filter(file => file.endsWith(".js"));
+client.hourly = new Discord.Collection();
+for (const file of hourlyCommands) {
+    const command = require(`${hourlyDirPath}/${file}`);
+
+    // set a new item in the Collection
+    // with the key as the command name and the value as the exported module
+    client.hourly.set(command.name, command);
+}
+
 const cooldowns = new Discord.Collection();
 
 // Ready
@@ -50,6 +73,36 @@ client.once("ready", () => {
     Log.log("Ready!");
     // Presence
     client.user.setPresence({ activities: [{ name: "everything", type: "LISTENING" }], status: "online" });
+    const fiveminutes = new CronJob("*/5 * * * *", async () => {
+        fiveMinutesCommands.forEach(async commandName => {
+            commandName = commandName.replace(".js", "");
+            const command = client.fiveMinutes.get(commandName)
+                || client.fiveMinutes.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
+            try {
+                Log.debug(`I'm trying to run ${commandName}`);
+                await command.execute(client, Log);
+                Log.debug(`${commandName} done!`);
+            } catch (error) {
+                Log.error(`I tried to use ${commandName}, which resulted in an error | ${error}`);
+            }
+        });
+    });
+    const hour = new CronJob("0 * * * *", async () => {
+        fiveMinutesCommands.forEach(async commandName => {
+            commandName = commandName.replace(".js", "");
+            const command = client.fiveMinutes.get(commandName)
+                || client.fiveMinutes.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
+            try {
+                Log.debug(`I'm trying to run ${commandName}`);
+                await command.execute(client, Log);
+                Log.debug(`${commandName} done!`);
+            } catch (error) {
+                Log.error(`I tried to use ${commandName}, which resulted in an error | ${error}`);
+            }
+        });
+    });
+    fiveminutes.start();
+    hour.start();
 });
 
 // Login using token
@@ -119,31 +172,23 @@ client.on("messageCreate", async message => {
     setTimeout(() => timestamps.delete(message.author.id), cooldownAmount);
 
     try {
-        command.execute(message, args, commandName);
+        await command.execute(message, args, commandName);
     } catch (error) {
         Log.error(`${message.author} tried to use ${command}, which resulted in an error | ${error}`);
         message.reply(`I tried so hard... but in the end... I couldn't do what you asked.`);
     }
 });
 
-let eventName;
 // Event listening
 client.on("messageDelete", async message => {
-    eventName = "messagedelete";
+    const eventName = "messagedelete";
     Log.debug("MESSAGE DELETED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    const entry = await message.guild.fetchAuditLogs({ type: 'MESSAGE_DELETE' })
-        .then(audit => audit.entries.first())
-        .then(async audit => {
-            Log.debug("MESSAGE DELETED | Attempting to audit!");
-            await event.execute(message, audit, Log);
-        })
-        .catch(error => Log.error(`MESSAGE DELETED | Error at audition | ${error}`));
 });
 
 client.on("messageUpdate", async (oldMessage, newMessage) => {
-    eventName = "messageupdate";
+    const eventName = "messageupdate";
     Log.debug("MESSAGE UPDATED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
@@ -152,7 +197,7 @@ client.on("messageUpdate", async (oldMessage, newMessage) => {
 });
 
 client.on("guildMemberAdd", async member => {
-    eventName = "guildmemberadd";
+    const eventName = "guildmemberadd";
     Log.debug("GUILD MEMBER ADDED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
@@ -161,7 +206,7 @@ client.on("guildMemberAdd", async member => {
 });
 
 client.on("guildMemberRemove", async member => {
-    eventName = "guildmemberremove";
+    const eventName = "guildmemberremove";
     Log.debug("GUILD MEMBER REMOVED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
@@ -170,12 +215,11 @@ client.on("guildMemberRemove", async member => {
 });
 
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
-    eventName = "guildmemberupdate";
+    const eventName = "guildmemberupdate";
     Log.debug("GUILD MEMBER UPDATED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
     Log.debug(`GUILD MEMBER UPDATED | Attempting to audit!`);
-    console.log(oldMember.pending, newMember.pending);
     if (oldMember.pending && !newMember.pending) {
         Log.debug("GUILD MEMBER UPDATED | Rules acceptance changed!");
         try {
@@ -198,28 +242,28 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
 });
 
 client.on("threadCreate", async thread => {
-    eventName = "threadcreate";
+    const eventName = "threadcreate";
     Log.debug("THREAD CREATED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
     Log.debug("THREAD CREATED  | Attempting to audit!");
     await event.execute(thread, Log);
-})
+});
 
 client.on("threadUpdate", async (thread, newThread) => {
-    eventName = "threadupdate";
+    const eventName = "threadupdate";
     Log.debug("THREAD UPDATED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
     Log.debug("THREAD UPDATED  | Attempting to audit!");
     await event.execute(thread, newThread, Log);
-})
+});
 
 client.on("threadDelete", async thread => {
-    eventName = "threaddelete";
+    const eventName = "threaddelete";
     Log.debug("THREAD DELETED | Event received!");
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
     Log.debug("THREAD DELETED  | Attempting to audit!");
     await event.execute(thread, Log);
-})
+});

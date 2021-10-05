@@ -9,6 +9,7 @@ module.exports = {
     description: "Sets the default channel to post audit logs",
     usage: "optional: <channel>",
     admin: true,
+    tag: "Admin",
     execute(message, args) {
         message.channel.send("Trying...")
             .then(message => {
@@ -32,7 +33,6 @@ module.exports = {
 
                     }
                     message.reply(response);
-                    console.log(channel);
                 });
             })
             .catch(err => console.log(err));
