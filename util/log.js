@@ -1,5 +1,3 @@
-const { events } = require('../config.json');
-
 module.exports = class Log {
     constructor(timestamp = new Date(Date.now())) {
         this.timestamp = timestamp;
