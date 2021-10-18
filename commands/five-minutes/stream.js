@@ -9,8 +9,9 @@ module.exports = {
 
                 const now = luxon.DateTime.now().toUTC();
                 let days = 1;
-                if (now.toFormat("E") === "6" && parseInt(now.toFormat("HH")) >= 21) days += 2;
-                if (now.toFormat("E") === "7") days += 1;
+                if (now.toFormat("E") === "6" && parseInt(now.toFormat("HH")) >= 21) days += 3;
+                if (now.toFormat("E") === "7") days += 2;
+                if (now.toFormat("E") === "1") days += 1;
 
 
                 const stream = now.set({ hour: 21, minute: 0, second: 0 }).plus({ days: days }).diff(now, ["days", "hours", "minutes", "seconds"]).toObject();
