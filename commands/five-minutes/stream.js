@@ -8,7 +8,7 @@ module.exports = {
                 Log.debug("Fetched vcStream!");
 
                 const now = luxon.DateTime.now().toUTC();
-                let days = 1;
+                let days = 0;
                 if (now.toFormat("E") === "6" && parseInt(now.toFormat("HH")) >= 21) days += 3;
                 if (now.toFormat("E") === "7") days += 2;
                 if (now.toFormat("E") === "1") days += 1;
