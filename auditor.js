@@ -175,7 +175,7 @@ client.on("messageCreate", async message => {
 
     try {
         message.channel.sendTyping();
-        await command.execute(message, args, commandName);
+        await command.execute(message, args, Log);
     } catch (error) {
         Log.error(`${message.author} tried to use ${command}, which resulted in an error | ${error}`);
         message.reply(`I tried so hard... but in the end... I couldn't do what you asked.`);

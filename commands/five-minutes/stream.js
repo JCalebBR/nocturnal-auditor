@@ -2,6 +2,12 @@ const luxon = require("luxon");
 
 module.exports = {
     name: "stream",
+    args: false,
+    guildOnly: true,
+    description: "Delete messages",
+    usage: "<1-99>",
+    admin: true,
+    tag: "Admin",
     async execute(client, Log) {
         await client.channels.fetch("894256720749150229")
             .then(async vcStream => {
@@ -15,7 +21,7 @@ module.exports = {
 
 
                 const stream = now.set({ hour: 21, minute: 0, second: 0 }).plus({ days: days }).diff(now, ["days", "hours", "minutes", "seconds"]).toObject();
-                const time = `🕙 ${stream.days ? `${stream.days > 1 ? `${stream.days} days` : ""}` : ""} ${stream.hours ? `${stream.hours} hours` : ""} ${stream.minutes ? `${stream.minutes} mins` : ""}`;
+                const time = `🕙 ${stream.days > 1 ? `${stream.days} days` : `${stream.days} day`} ${stream.hours ? `${stream.hours} hours` : ""} ${stream.minutes ? `${stream.minutes} mins` : ""}`;
 
                 Log.debug(time);
                 await vcStream.setName(time)
