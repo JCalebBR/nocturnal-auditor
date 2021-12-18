@@ -17,17 +17,16 @@ module.exports = {
                 response.items.forEach(async item => {
                     await client.channels.fetch("894028585336193104")
                         .then(async vcNik => {
-                            Log.debug("Fetched vcNik!");
+                            Log.debug("subscriber | Fetched vcNik!");
 
                             if (item.id == "UCLhcQ0bBZTLipRJ7D42Riow") {
                                 const nik = `🔴 YT: ${Intl.NumberFormat().format(item.statistics.subscriberCount)} subs`;
                                 await vcNik.setName(nik).then(() => Log.debug(`Set clips to: ${nik}`));
-                            }
-                            else if (item.id == "UCuGrnmTm03ZzoZSyfP-eNJQ") await client.channels.fetch("894028606068650084")
+                            } else if (item.id == "UCuGrnmTm03ZzoZSyfP-eNJQ") await client.channels.fetch("894028606068650084")
                                 .then(async vcClips => {
                                     const clips = `🟣 Clips: ${Intl.NumberFormat().format(item.statistics.subscriberCount)} subs`;
                                     await vcClips.setName(clips)
-                                        .then(() => Log.debug(`Set clips to: ${clips}`));
+                                        .then(() => Log.debug(`subscriber | Set clips to: ${clips}`));
                                 });
                         });
                 });

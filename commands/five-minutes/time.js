@@ -20,16 +20,16 @@ module.exports = {
 
                 await client.channels.fetch("894028235027923014")
                     .then(async vcTime => {
-                        Log.debug("Fetched vcTime!");
+                        Log.debug("time | Fetched vcTime!");
                         await vcTime.setName(`🕒 ${time} EST`)
                             .then(async () => {
-                                Log.debug("Updated vcTime name!");
+                                Log.debug("time | Updated vcTime name!");
                                 await client.channels.fetch("894028280187985991")
                                     .then(async vcDate => {
-                                        Log.debug("Fetched vcDate!");
+                                        Log.debug("time | Fetched vcDate!");
                                         await vcDate.setName(`📆 ${date}`)
                                             .then(async () => {
-                                                Log.debug("Updated vcDate name!");
+                                                Log.debug("time | Updated vcDate name!");
                                                 return;
                                             })
                                             .catch(console.error);

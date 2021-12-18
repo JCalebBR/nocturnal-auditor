@@ -30,6 +30,8 @@ module.exports = class EmbedBuilder {
         else if (this.event === "GUILD MEMBER ADDED") return this.guildMemberAdd(this.message);
         else if (this.event === "GUILD MEMBER REMOVED") return this.guildMemberRemove(this.message);
         else if (this.event === "GUILD MEMBER UPDATED") return this.guildMemberUpdate(this.message);
+        else if (this.event === "GUILD BAN ADDED") return this.guildBanAdd(this.message);
+        else if (this.event === "GUILD BAN REMOVED") return this.guildBanRemove(this.message);
         else return `UNKNOWN EVENT`;
     };
 
@@ -65,42 +67,42 @@ module.exports = class EmbedBuilder {
         return description;
     }
 
-    threadCreated(thread){
+    threadCreated(thread) {
         let description = `
             **Creator : ** <@${thread.ownerId}>
             **Thread Creation : ** ${new Date(thread.createdTimestamp)}
             **Parent Channel : ** ${thread.parent}
             **Thread Name : ** \`${thread.name}\`
-            **Thread Type : ** \`${thread.type === "GUILD_PRIVATE_THREAD" ? "Private":"Public"}\``
+            **Thread Type : ** \`${thread.type === "GUILD_PRIVATE_THREAD" ? "Private" : "Public"}\``;
         return description;
     }
 
-    threadUpdated(thread, newThread){
+    threadUpdated(thread, newThread) {
         let description = `
             **Creator : ** <@${thread.ownerId}>
             **Thread Creation : ** ${new Date(thread.createdTimestamp)}
             **Parent Channel : ** ${thread.parent}`;
-        
+
         if (thread.name !== newThread.name) {
             description += `
             **Old Thread Name : ** \`${thread.name}\`
-            **New Thread Name : ** \`${newThread.name}\``
+            **New Thread Name : ** \`${newThread.name}\``;
         }
 
         if (thread.archived !== newThread.archived) {
             description += `
-            **Thread Status: ** ${newThread.archived ? 'Archived' : 'Unarchived'}`
+            **Thread Status: ** ${newThread.archived ? 'Archived' : 'Unarchived'}`;
         }
         return description;
     }
 
-    threadDeleted(thread){
+    threadDeleted(thread) {
         let description = `
             **Creator : ** <@${thread.ownerId}>
             **Thread Creation : ** ${new Date(thread.createdTimestamp)}
             **Parent Channel : ** ${thread.parent}
             **Thread Name : ** \`${thread.name}\`
-            **Thread Status: ** \`${thread.archived ? 'Archived' : 'Unarchived'}\``
+            **Thread Status: ** \`${thread.archived ? 'Archived' : 'Unarchived'}\``;
         return description;
     }
 
@@ -133,12 +135,6 @@ module.exports = class EmbedBuilder {
             **User born on : ** ${new Date(message.user.createdTimestamp).toDateString()}
             **Date of leave: ** ${this.timestamp}`;
     }
-    guildBanAdd(message) {
-
-    }
-    guildBanRemove(message) {
-
-    }
     guildMemberUpdate(oldMember) {
         this.thumbnail = {
             url: oldMember.user.displayAvatarURL()
@@ -152,5 +148,34 @@ module.exports = class EmbedBuilder {
             **Border Crosser : ** ${oldMember.user} - ${oldMember.user.tag}
             **User born on : ** ${new Date(oldMember.user.createdTimestamp).toDateString()}
             **Accepted the rules? : ** ${!oldMember.pending}`;
+    }
+    guildBanAdd(message) {
+        this.thumbnail = {
+            url: message.user.displayAvatarURL()
+        };
+        this.author = {
+            name: `BAN ADDED : ${message.user.tag}`,
+            icon_url: events[this.event].url
+        };
+        this.timestamp = new Date();
+        return `
+            **Border Crosser : ** ${message.user} - ${message.user.tag}
+            **User born on : ** ${new Date(message.user.createdTimestamp).toDateString()}
+            **Date of ban: ** ${this.timestamp}
+            **Reason: ** ${message.reason || "None provided"}`;
+    }
+    guildBanRemove(message) {
+        this.thumbnail = {
+            url: message.user.displayAvatarURL()
+        };
+        this.author = {
+            name: `BAN REMOVED : ${message.user.tag}`,
+            icon_url: events[this.event].url
+        };
+        this.timestamp = new Date();
+        return `
+            **Border Crosser : ** ${message.user} - ${message.user.tag}
+            **User born on : ** ${new Date(message.user.createdTimestamp).toDateString()}
+            **Date of unban: ** ${this.timestamp}`;
     }
 };

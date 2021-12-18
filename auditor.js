@@ -1,8 +1,8 @@
-const { CronJob } = require("cron");
+const { Job } = require("@simpleview/async-cron");
 const fs = require("fs");
 
 const Discord = require("discord.js");
-const { token, prefix } = require("./config.json");
+const { guildId, token, prefix } = require("./config.json");
 
 const botIntents = new Discord.Intents();
 botIntents.add(
@@ -18,30 +18,31 @@ botIntents.add(
 const client = new Discord.Client({ intents: botIntents });
 const path = require("path");
 const Logging = require("./util/log");
-const eventsDirPath = path.resolve(__dirname, "./events");
-const commandsDirPath = path.resolve(__dirname, "./commands");
-
 const Log = new Logging();
-client.gEvents = new Discord.Collection();
-const eventFiles = fs.readdirSync(eventsDirPath).filter(file => file.endsWith(".js"));
 
-for (const file of eventFiles) {
-    const event = require(`./events/${file}`);
+const interactionsDirPath = path.resolve(__dirname, "./interactions");
+const commandsDirPath = path.resolve(__dirname, "./commands");
+const eventsDirPath = path.resolve(__dirname, "./events");
 
-    // set a new item in the Collection
-    // with the key as the command name and the value as the exported module
-    client.gEvents.set(event.name, event);
+client.interactions = new Discord.Collection();
+const interactionFiles = fs.readdirSync(interactionsDirPath).filter(file => file.endsWith(".js"));
+for (const file of interactionFiles) {
+    const command = require(`${interactionsDirPath}/${file}`);
+    client.interactions.set(command.data.name, command);
 }
 
 client.commands = new Discord.Collection();
 const commandFiles = fs.readdirSync(commandsDirPath).filter(file => file.endsWith(".js"));
-
 for (const file of commandFiles) {
-    const command = require(`./commands/${file}`);
-
-    // set a new item in the Collection
-    // with the key as the command name and the value as the exported module
+    const command = require(`${commandsDirPath}/${file}`);
     client.commands.set(command.name, command);
+}
+
+client.gEvents = new Discord.Collection();
+const eventFiles = fs.readdirSync(eventsDirPath).filter(file => file.endsWith(".js"));
+for (const file of eventFiles) {
+    const event = require(`${eventsDirPath}/${file}`);
+    client.gEvents.set(event.name, event);
 }
 
 const fiveMinutesDirPath = path.resolve(__dirname, "./commands/five-minutes");
@@ -49,9 +50,6 @@ const fiveMinutesCommands = fs.readdirSync(fiveMinutesDirPath).filter(file => fi
 client.fiveMinutes = new Discord.Collection();
 for (const file of fiveMinutesCommands) {
     const command = require(`${fiveMinutesDirPath}/${file}`);
-
-    // set a new item in the Collection
-    // with the key as the command name and the value as the exported module
     client.fiveMinutes.set(command.name, command);
 }
 
@@ -60,20 +58,16 @@ const hourlyCommands = fs.readdirSync(hourlyDirPath).filter(file => file.endsWit
 client.hourly = new Discord.Collection();
 for (const file of hourlyCommands) {
     const command = require(`${hourlyDirPath}/${file}`);
-
-    // set a new item in the Collection
-    // with the key as the command name and the value as the exported module
     client.hourly.set(command.name, command);
 }
 
 const cooldowns = new Discord.Collection();
 
-// Ready
-client.once("ready", () => {
+client.once("ready", async () => {
     Log.log("Ready!");
     // Presence
     client.user.setPresence({ activities: [{ name: "everything", type: "LISTENING" }], status: "online" });
-    const fiveminutes = new CronJob("*/5 * * * *", async () => {
+    const fiveminutes = new Job({ schedule: "*/5 * * * *" }, async () => {
         Log.debug("Running fiveminutes jobs!");
         fiveMinutesCommands.forEach(async commandName => {
             commandName = commandName.replace(".js", "");
@@ -88,7 +82,7 @@ client.once("ready", () => {
             }
         });
     });
-    const hour = new CronJob("0 * * * *", async () => {
+    const hour = new Job({ schedule: "0 * * * *" }, async () => {
         Log.debug("Running hourly jobs!");
         hourlyCommands.forEach(async commandName => {
             commandName = commandName.replace(".js", "");
@@ -103,47 +97,57 @@ client.once("ready", () => {
             }
         });
     });
+    fiveminutes.on("error", (err) => Log.error(`FiveMinutes CronJob Error: ${err}`));
+    hour.on("error", (err) => Log.error(`Hourly CronJob Error: ${err}`));
     fiveminutes.start();
     hour.start();
 });
 
-// Login using token
 client.login(token);
 
-// Commands
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) return;
+
+    const command = client.interactions.get(interaction.commandName);
+    const guild = client.guilds.cache.find(guild => guild.id === guildId);
+    if (!command) return;
+
+    try {
+        await command.execute(interaction, guild);
+    } catch (error) {
+        Log.error(`Interaction Error | ${command} | ${error}`);
+        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+    }
+});
+
 client.on("messageCreate", async message => {
-    // Checks if message starts with a prefix or if it's not from another bot
     if (!message.content.startsWith(prefix) || message.author.bot) return;
 
-    // Split args
     const args = message.content.slice(prefix.length).trim().split(/ +/);
-    // Actual command received
     const commandName = args.shift().toLowerCase();
-    // Check if there is a command file for the command or if it is an alias
     const command = client.commands.get(commandName)
         || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
-    // If no command found, exit
+
     if (!command) {
         Log.error(`${message.author} tried to use the command "${command}" which doesn't appear to exist!`);
         return;
     }
-    // Checks if the command is for staff use
+
     if (command.admin) {
         if (!message.member.roles.cache.find(r => r.name === "Moderators")) {
             Log.warn(`${message.author} tried to use the staff command "${command}"!`);
             message.channel.send(`I'm sorry ${message.author}, I'm afraid I can't do that\nYou don't have the necessary role.`);
         }
     }
-    // Checks if the command is meant to be used only in servers
+
     if (command.guildOnly && message.channel.type === "DM") {
         Log.warn(`${message.author} tried to use the command "${command}" inside of DMs, but the command is guildOnly`);
         message.reply("I can\'t execute that command inside DMs!");
         return;
     }
-    // Checks if the command needs arguments
+
     if (command.args && !args.length) {
         let reply = `You didn't provide any arguments!`;
-        // If it has a usage guide, send it
         if (command.usage) {
             reply += `\nThe proper usage would be: \`${prefix}${commandName} ${command.usage}\``;
         }
@@ -151,7 +155,7 @@ client.on("messageCreate", async message => {
         message.reply(reply);
         return;
     }
-    // Cooldown
+
     if (!cooldowns.has(command.name)) {
         cooldowns.set(command.name, new Discord.Collection());
     }
@@ -182,7 +186,6 @@ client.on("messageCreate", async message => {
     }
 });
 
-// Event listening
 client.on("messageDelete", async message => {
     const eventName = "messagedelete";
     Log.debug("MESSAGE DELETED | Event received!");
@@ -276,4 +279,22 @@ client.on("threadDelete", async thread => {
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
     Log.debug("THREAD DELETED  | Attempting to audit!");
     await event.execute(thread, Log);
+});
+
+client.on("guildBanAdd", async ban => {
+    const eventName = "guildbanadd";
+    Log.debug("GUILD BAN ADDED | Event received!");
+    const event = client.gEvents.get(eventName)
+        || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    Log.debug("GUILD BAN ADDED  | Attempting to audit!");
+    await event.execute(ban, Log);
+});
+
+client.on("guildBanRemove", async ban => {
+    const eventName = "guildbanremove";
+    Log.debug("GUILD BAN REMOVED | Event received!");
+    const event = client.gEvents.get(eventName)
+        || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    Log.debug("GUILD BAN REMOVED  | Attempting to audit!");
+    await event.execute(ban, Log);
 });
