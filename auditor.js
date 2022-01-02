@@ -140,7 +140,7 @@ client.on("messageCreate", async message => {
                 else {
                     data.forEach(term => {
                         term = term.dataValues;
-                        if (message.content.includes(term.term)) {
+                        if (message.content.toLowerCase().includes(term.term)) {
                             const member = message.member;
                             message.delete();
                             Log.warn(`Deleted ${message.author} message, said ${term.type} | ${term.term}`);

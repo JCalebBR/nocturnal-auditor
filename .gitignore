@@ -131,3 +131,4 @@ commands/user.js
 auditor.code-workspace
 old/
 .eslintrc.json
+bannedterms.db
