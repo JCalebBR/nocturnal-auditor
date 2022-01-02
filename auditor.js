@@ -3,6 +3,8 @@ const fs = require("fs");
 
 const Discord = require("discord.js");
 const { guildId, token, prefix } = require("./config.json");
+const db = require("./sqlite/database");
+const terms = require("./sqlite/terms");
 
 const botIntents = new Discord.Intents();
 botIntents.add(
@@ -101,6 +103,14 @@ client.once("ready", async () => {
     hour.on("error", (err) => Log.error(`Hourly CronJob Error: ${err}`));
     fiveminutes.start();
     hour.start();
+
+    await db.authenticate()
+        .then(() => {
+            Log.log("Connected to DB!");
+            terms.init(db);
+            terms.sync();
+        })
+        .catch(Log.error);
 });
 
 client.login(token);
@@ -121,7 +131,32 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.on("messageCreate", async message => {
-    if (!message.content.startsWith(prefix) || message.author.bot) return;
+    if (message.author.bot) return;
+
+    if (!message.content.startsWith(prefix)) {
+        await terms.findAll({ order: [["type", "ASC"], ["term", "ASC"]] })
+            .then(data => {
+                if (!data.length) return;
+                else {
+                    data.forEach(term => {
+                        term = term.dataValues;
+                        if (message.content.includes(term.term)) {
+                            const member = message.member;
+                            message.delete();
+                            Log.warn(`Deleted ${message.author} message, said ${term.type} | ${term.term}`);
+                            member.timeout(60 * 60 * 1000, `Said ${term.type} | ${term.term}`)
+                                .then(() => Log.warn(`Timed out ${message.author}`))
+                                .catch(Log.error);
+                            // @ts-ignore
+                            message.client.channels.cache.get("819276503874797609").send(`I timed out ${message.author} because they said \`${term.type}\` \`${term.term}\` in ${message.channel}`);
+                            return;
+                        }
+                    });
+                }
+            })
+            .catch(Log.error);
+        return;
+    }
 
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
@@ -179,7 +214,7 @@ client.on("messageCreate", async message => {
 
     try {
         message.channel.sendTyping();
-        await command.execute(message, args, Log);
+        await command.execute(message, args, Log, terms);
     } catch (error) {
         Log.error(`${message.author} tried to use ${command}, which resulted in an error | ${error}`);
         message.reply(`I tried so hard... but in the end... I couldn't do what you asked.`);
@@ -298,3 +333,4 @@ client.on("guildBanRemove", async ban => {
     Log.debug("GUILD BAN REMOVED  | Attempting to audit!");
     await event.execute(ban, Log);
 });
+
