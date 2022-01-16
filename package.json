@@ -9,7 +9,7 @@
     "fs": "0.0.1-security",
     "googleapis": "^88.2.0",
     "luxon": "^2.0.2",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "optionator": "^0.9.1",
     "path": "^0.12.7",
     "sequelize": "^7.0.0-alpha.4",
