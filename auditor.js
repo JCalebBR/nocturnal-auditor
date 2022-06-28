@@ -2,9 +2,7 @@ const { Job } = require("@simpleview/async-cron");
 const fs = require("fs");
 
 const Discord = require("discord.js");
-const { guildId, token, prefix } = require("./config.json");
-const db = require("./sqlite/database");
-const terms = require("./sqlite/terms");
+const { token, prefix } = require("./config.json");
 
 const botIntents = new Discord.Intents();
 botIntents.add(
@@ -68,6 +66,7 @@ const cooldowns = new Discord.Collection();
 client.once("ready", async () => {
     Log.log("Ready!");
     // Presence
+    // @ts-ignore
     client.user.setPresence({ activities: [{ name: "everything", type: "LISTENING" }], status: "online" });
     const fiveminutes = new Job({ schedule: "*/5 * * * *" }, async () => {
         Log.debug("Running fiveminutes jobs!");
@@ -103,14 +102,6 @@ client.once("ready", async () => {
     hour.on("error", (err) => Log.error(`Hourly CronJob Error: ${err}`));
     fiveminutes.start();
     hour.start();
-
-    await db.authenticate()
-        .then(() => {
-            Log.log("Connected to DB!");
-            terms.init(db);
-            terms.sync();
-        })
-        .catch(Log.error);
 });
 
 client.login(token);
@@ -119,7 +110,7 @@ client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     const command = client.interactions.get(interaction.commandName);
-    const guild = client.guilds.cache.find(guild => guild.id === guildId);
+    const guild = client.guilds.cache.find(guild => guild.id === "384935929791512577");
     if (!command) return;
 
     try {
@@ -134,31 +125,11 @@ client.on("messageCreate", async message => {
     if (message.author.bot) return;
 
     if (!message.content.startsWith(prefix)) {
-        await terms.findAll({ order: [["type", "ASC"], ["term", "ASC"]] })
-            .then(data => {
-                if (!data.length) return;
-                else {
-                    data.forEach(term => {
-                        term = term.dataValues;
-                        if (message.content.toLowerCase().includes(term.term)) {
-                            const member = message.member;
-                            message.delete();
-                            Log.warn(`Deleted ${message.author} message, said ${term.type} | ${term.term}`);
-                            member.timeout(60 * 60 * 1000, `Said ${term.type} | ${term.term}`)
-                                .then(() => Log.warn(`Timed out ${message.author}`))
-                                .catch(Log.error);
-                            // @ts-ignore
-                            message.client.channels.cache.get("819276503874797609").send(`I timed out ${message.author} because they said \`${term.type}\` \`${term.term}\` in ${message.channel}`);
-                            return;
-                        }
-                    });
-                }
-            })
-            .catch(Log.error);
         return;
     }
 
     const args = message.content.slice(prefix.length).trim().split(/ +/);
+    // @ts-ignore
     const commandName = args.shift().toLowerCase();
     const command = client.commands.get(commandName)
         || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
@@ -169,6 +140,7 @@ client.on("messageCreate", async message => {
     }
 
     if (command.admin) {
+        // @ts-ignore
         if (!message.member.roles.cache.find(r => r.name === "Moderators")) {
             Log.warn(`${message.author} tried to use the staff command "${command}"!`);
             message.channel.send(`I'm sorry ${message.author}, I'm afraid I can't do that\nYou don't have the necessary role.`);
@@ -214,7 +186,7 @@ client.on("messageCreate", async message => {
 
     try {
         message.channel.sendTyping();
-        await command.execute(message, args, Log, terms);
+        await command.execute(message, args, Log);
     } catch (error) {
         Log.error(`${message.author} tried to use ${command}, which resulted in an error | ${error}`);
         message.reply(`I tried so hard... but in the end... I couldn't do what you asked.`);
@@ -223,114 +195,116 @@ client.on("messageCreate", async message => {
 
 client.on("messageDelete", async message => {
     const eventName = "messagedelete";
-    Log.debug("MESSAGE DELETED | Event received!");
+    Log.debug(`MESSAGE DELETED | ${message.guildId} | Event received!`);
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
+    // @ts-ignore
     const entry = await message.guild.fetchAuditLogs({ type: 'MESSAGE_DELETE' })
         .then(audit => audit.entries.first())
         .then(async audit => {
-            Log.debug("MESSAGE DELETED | Attempting to audit!");
+            Log.debug(`MESSAGE DELETED | ${message.guildId} | Attempting to audit!`);
             await event.execute(message, audit, Log);
         })
-        .catch(error => Log.error(`MESSAGE DELETED | Error at audition | ${error}`));
+        .catch(error => Log.error(`MESSAGE DELETED | ${message.guildId} | Error at audition | ${error}`));
 });
 
 client.on("messageUpdate", async (oldMessage, newMessage) => {
     const eventName = "messageupdate";
-    Log.debug("MESSAGE UPDATED | Event received!");
+    Log.debug(`MESSAGE UPDATED | ${oldMessage.guildId} | Event received!`);
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug("MESSAGE UPDATED | Attempting to audit!");
+    Log.debug(`MESSAGE UPDATED | ${oldMessage.guildId} | Attempting to audit!`);
     await event.execute(oldMessage, newMessage, Log);
 });
 
 client.on("guildMemberAdd", async member => {
     const eventName = "guildmemberadd";
-    Log.debug("GUILD MEMBER ADDED | Event received!");
+    Log.debug(`GUILD MEMBER ADDED | ${member.guild} | Event received!`);
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug("GUILD MEMBER ADDED | Attempting to audit!");
+    Log.debug(`GUILD MEMBER ADDED | ${member.guild} |Attempting to audit!`);
     await event.execute(member, Log);
 });
 
 client.on("guildMemberRemove", async member => {
     const eventName = "guildmemberremove";
-    Log.debug("GUILD MEMBER REMOVED | Event received!");
+    Log.debug(`GUILD MEMBER REMOVED | ${member.guild} |Event received!`);
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug("GUILD MEMBER REMOVED | Attempting to audit!");
+    Log.debug(`GUILD MEMBER REMOVED | ${member.guild} |Attempting to audit!`);
     await event.execute(member, Log);
 });
 
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
     const eventName = "guildmemberupdate";
-    Log.debug("GUILD MEMBER UPDATED | Event received!");
+    Log.debug(`GUILD MEMBER UPDATED | ${oldMember.guild} | Event received!`);
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug(`GUILD MEMBER UPDATED | Attempting to audit!`);
+    Log.debug(`GUILD MEMBER UPDATED | ${oldMember.guild} | Attempting to audit!`);
     if (oldMember.pending && !newMember.pending) {
-        Log.debug("GUILD MEMBER UPDATED | Rules acceptance changed!");
+        Log.debug(`GUILD MEMBER UPDATED | ${oldMember.guild} | Rules acceptance changed!`);
         try {
             // Find Role Func
             let roleFind = async () => {
                 return oldMember.guild.roles.cache.find(
-                    role => role.name === "Core Kid" || role.id === "782021464060330034");
+                    role => role.name === "Core Kid" || role.id === "782021464060330034" || role.name === "French Fries" || role.id === "929581467342897222");
             };
-            Log.debug(`GUILD MEMBER UPDATED | Attempting to give default role!`);
+            Log.debug(`GUILD MEMBER UPDATED | ${oldMember.guild} | Attempting to give default role!`);
             // Await Role
             await roleFind()
                 // Give Role
+                // @ts-ignore
                 .then(role => newMember.roles.set([role]))
-                .catch(error => Log.error(`GUILD MEMBER UPDATED | Role change failed! | ${error}`));
+                .catch(error => Log.error(`GUILD MEMBER UPDATED | ${oldMember.guild} | Role change failed! | ${error}`));
             await event.execute(newMember, Log);
         } catch (error) {
-            Log.error(`GUILD MEMBER UPDATED | Something broke! | ${error}`);
+            Log.error(`GUILD MEMBER UPDATED | ${oldMember.guild} | Something broke! | ${error}`);
         }
     }
 });
 
 client.on("threadCreate", async thread => {
     const eventName = "threadcreate";
-    Log.debug("THREAD CREATED | Event received!");
+    Log.debug(`THREAD CREATED | ${thread.guildId} | Event received!`);
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug("THREAD CREATED  | Attempting to audit!");
+    Log.debug(`THREAD CREATED | ${thread.guildId} Attempting to audit!`);
     await event.execute(thread, Log);
 });
 
 client.on("threadUpdate", async (thread, newThread) => {
     const eventName = "threadupdate";
-    Log.debug("THREAD UPDATED | Event received!");
+    Log.debug(`THREAD UPDATED | ${thread.guildId} Event received!`);
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug("THREAD UPDATED  | Attempting to audit!");
+    Log.debug(`THREAD UPDATED | ${thread.guildId} Attempting to audit!`);
     await event.execute(thread, newThread, Log);
 });
 
 client.on("threadDelete", async thread => {
     const eventName = "threaddelete";
-    Log.debug("THREAD DELETED | Event received!");
+    Log.debug(`THREAD DELETED | ${thread.guildId} Event received!`);
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug("THREAD DELETED  | Attempting to audit!");
+    Log.debug(`THREAD DELETED | ${thread.guildId} Attempting to audit!`);
     await event.execute(thread, Log);
 });
 
 client.on("guildBanAdd", async ban => {
     const eventName = "guildbanadd";
-    Log.debug("GUILD BAN ADDED | Event received!");
+    Log.debug(`GUILD BAN ADDED | ${ban.guild} | Event received!`);
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug("GUILD BAN ADDED  | Attempting to audit!");
+    Log.debug(`GUILD BAN ADDED | ${ban.guild} | Attempting to audit!`);
     await event.execute(ban, Log);
 });
 
 client.on("guildBanRemove", async ban => {
     const eventName = "guildbanremove";
-    Log.debug("GUILD BAN REMOVED | Event received!");
+    Log.debug(`GUILD BAN REMOVED | ${ban.guild} | Event received!`);
     const event = client.gEvents.get(eventName)
         || client.gEvents.find(evt => evt.aliases && evt.aliases.includes(eventName));
-    Log.debug("GUILD BAN REMOVED  | Attempting to audit!");
+    Log.debug(`GUILD BAN REMOVED | ${ban.guild} | Attempting to audit!`);
     await event.execute(ban, Log);
 });
 
